@@ -79,12 +79,26 @@ class InterviewResponse(BaseModel):
 
 
 class CommunicationMetricsSummary(BaseModel):
-    speaking_speed_wpm: float = 140.0
+    speaking_speed_wpm: float = 138.0
     filler_words_count: int = 2
     eye_contact_percentage: float = 85.0
-    face_visibility_percentage: float = 95.0
-    posture_score: float = 8.5
+    face_visibility_percentage: float = 95.5
+    hand_visibility_percentage: float = 89.0
+    hand_movement_intensity: str = "Moderate"
+    posture_score: float = 8.8
+    posture_status: str = "Good Alignment"
     is_simulated_demo: bool = True
+
+
+class QuestionCommunicationReport(BaseModel):
+    eye_contact_percentage: float
+    face_visibility_percentage: float
+    words_per_minute: int
+    speaking_pace_rating: str
+    filler_words_count: int
+    filler_words_found: List[str]
+    hand_movement_intensity: str
+    posture_status: str
 
 
 class QuestionDetailReport(BaseModel):
@@ -101,15 +115,16 @@ class QuestionDetailReport(BaseModel):
     strengths: List[str]
     improvements: List[str]
     sample_improved_answer: str
+    communication: QuestionCommunicationReport
 
 
 class CategoryScores(BaseModel):
+    interview_performance: float
     answer_quality: float
     technical_knowledge: float
     communication: float
-    clarity: float
-    confidence: float
-    structure: float
+    visual_presentation: float
+
 
 
 class PerformanceReportResponse(BaseModel):

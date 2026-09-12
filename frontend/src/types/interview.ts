@@ -50,12 +50,11 @@ export interface InterviewSession {
 }
 
 export interface CategoryScores {
+  interview_performance: number;
   answer_quality: number;
   technical_knowledge: number;
   communication: number;
-  clarity: number;
-  confidence: number;
-  structure: number;
+  visual_presentation: number;
 }
 
 export interface CommunicationMetrics {
@@ -63,8 +62,22 @@ export interface CommunicationMetrics {
   filler_words_count: number;
   eye_contact_percentage: number;
   face_visibility_percentage: number;
+  hand_visibility_percentage: number;
+  hand_movement_intensity: string;
   posture_score: number;
+  posture_status: string;
   is_simulated_demo: boolean;
+}
+
+export interface QuestionCommunicationReport {
+  eye_contact_percentage: number;
+  face_visibility_percentage: number;
+  words_per_minute: number;
+  speaking_pace_rating: string;
+  filler_words_count: number;
+  filler_words_found: string[];
+  hand_movement_intensity: string;
+  posture_status: string;
 }
 
 export interface QuestionDetailReport {
@@ -81,6 +94,7 @@ export interface QuestionDetailReport {
   strengths: string[];
   improvements: string[];
   sample_improved_answer: string;
+  communication: QuestionCommunicationReport;
 }
 
 export interface PerformanceReport {

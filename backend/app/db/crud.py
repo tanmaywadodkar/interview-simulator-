@@ -85,11 +85,20 @@ def finish_interview(db: Session, interview_id: str, overall_score: float, repor
     return interview
 
 
-def record_communication_metric(db: Session, interview_id: str, name: str, value: float) -> CommunicationMetrics:
+def record_communication_metric(
+    db: Session,
+    interview_id: str,
+    name: str,
+    value: float,
+    question_id: Optional[str] = None,
+    text_desc: Optional[str] = None
+) -> CommunicationMetrics:
     metric = CommunicationMetrics(
         interview_id=interview_id,
+        question_id=question_id,
         metric_name=name,
         metric_value=value,
+        metric_text=text_desc,
     )
     db.add(metric)
     db.commit()

@@ -46,6 +46,7 @@ class Question(Base):
 
     interview = relationship("Interview", back_populates="questions")
     answer = relationship("Answer", back_populates="question", uselist=False, cascade="all, delete-orphan")
+    metrics = relationship("CommunicationMetrics", back_populates="question", cascade="all, delete-orphan")
 
 
 class Answer(Base):
@@ -66,8 +67,11 @@ class CommunicationMetrics(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     interview_id = Column(String, ForeignKey("interviews.id"), nullable=False)
+    question_id = Column(String, ForeignKey("questions.id"), nullable=True)
     metric_name = Column(String, nullable=False)
     metric_value = Column(Float, nullable=False)
+    metric_text = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     interview = relationship("Interview", back_populates="metrics")
+    question = relationship("Question", back_populates="metrics")

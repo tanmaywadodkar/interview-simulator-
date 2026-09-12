@@ -113,7 +113,7 @@ def get_interview_details(interview_id: str, db: Session = Depends(get_db)):
 @router.post("/{interview_id}/answer", response_model=AnswerEvaluationSchema)
 async def submit_answer(interview_id: str, payload: AnswerSubmit, db: Session = Depends(get_db)):
     """
-    Submit candidate answer transcript, evaluate using AI Evaluator, and save evaluation.
+    Submit candidate answer transcript, evaluate using AI Evaluator, analyze communication metrics, and persist session metrics.
     """
     interview = crud.get_interview(db, interview_id)
     if not interview:
@@ -128,6 +128,7 @@ async def submit_answer(interview_id: str, payload: AnswerSubmit, db: Session = 
     if not sanitized_transcript:
         raise HTTPException(status_code=400, detail="Answer transcript cannot be empty.")
 
+    # Evaluate answer content
     evaluation = await answer_evaluator.evaluate_answer(
         question=current_q.question,
         transcript=sanitized_transcript,
@@ -138,6 +139,17 @@ async def submit_answer(interview_id: str, payload: AnswerSubmit, db: Session = 
     )
 
     score = float(evaluation.get("score", 7.0))
+
+    # Analyze communication metrics for this specific question
+    comm_q_metrics = analysis_service.analyze_question_communication(sanitized_transcript)
+    
+    # Store metrics in database linked to current question
+    crud.record_communication_metric(db, interview.id, "words_per_minute", float(comm_q_metrics["words_per_minute"]), question_id=current_q.id)
+    crud.record_communication_metric(db, interview.id, "filler_words_count", float(comm_q_metrics["filler_words_count"]), question_id=current_q.id, text_desc=", ".join(comm_q_metrics["filler_words_found"]))
+    crud.record_communication_metric(db, interview.id, "eye_contact_percentage", float(comm_q_metrics["eye_contact_percentage"]), question_id=current_q.id)
+
+    # Attach communication metrics to answer evaluation dict
+    evaluation["communication"] = comm_q_metrics
 
     crud.add_answer(
         db=db,
@@ -266,6 +278,8 @@ def _build_performance_report(interview) -> PerformanceReportResponse:
     rel_sum, clar_sum, tech_sum, struct_sum = 0.0, 0.0, 0.0, 0.0
     all_strengths = []
     all_improvements = []
+    total_filler_words = 0
+    total_wpm_sum = 0
 
     for q in interview.questions:
         if q.answer and q.answer.score is not None:
@@ -284,10 +298,26 @@ def _build_performance_report(interview) -> PerformanceReportResponse:
             tech_sum += tech
             struct_sum += struct
 
+            comm_q = eval_data.get("communication") or analysis_service.analyze_question_communication(q.answer.transcript)
+            total_filler_words += comm_q.get("filler_words_count", 0)
+            total_wpm_sum += comm_q.get("words_per_minute", 135)
+
             strengths = eval_data.get("strengths", ["Answered the question clearly."])
             improvements = eval_data.get("improvements", ["Provide more specific metrics."])
             all_strengths.extend(strengths)
             all_improvements.extend(improvements)
+
+            from app.schemas.interview import QuestionCommunicationReport
+            q_comm_schema = QuestionCommunicationReport(
+                eye_contact_percentage=float(comm_q.get("eye_contact_percentage", 85.0)),
+                face_visibility_percentage=float(comm_q.get("face_visibility_percentage", 96.0)),
+                words_per_minute=int(comm_q.get("words_per_minute", 135)),
+                speaking_pace_rating=str(comm_q.get("speaking_pace_rating", "Optimal Pace")),
+                filler_words_count=int(comm_q.get("filler_words_count", 0)),
+                filler_words_found=comm_q.get("filler_words_found", []),
+                hand_movement_intensity=str(comm_q.get("hand_movement_intensity", "Moderate")),
+                posture_status=str(comm_q.get("posture_status", "Good Alignment")),
+            )
 
             questions_detail.append(QuestionDetailReport(
                 question_id=q.id,
@@ -306,39 +336,53 @@ def _build_performance_report(interview) -> PerformanceReportResponse:
                     "sample_improved_answer",
                     f"A structured response focusing on {interview.role} best practices and concrete results."
                 ),
+                communication=q_comm_schema,
             ))
 
     if ans_count == 0:
         avg_score_10 = 7.0
         overall_100 = 70.0
         cat_scores = CategoryScores(
+            interview_performance=70.0,
             answer_quality=70.0,
             technical_knowledge=70.0,
             communication=75.0,
-            clarity=70.0,
-            confidence=72.0,
-            structure=68.0,
+            visual_presentation=76.0,
         )
     else:
         avg_score_10 = total_score_sum / ans_count
         overall_100 = round(avg_score_10 * 10, 1)
+
+        ans_qual = round((rel_sum / ans_count) * 10, 1)
+        tech_know = round((tech_sum / ans_count) * 10, 1)
+        comm_score = round(max(50.0, min(100.0, ((clar_sum / ans_count) * 10) - (total_filler_words * 1.5))), 1)
+        vis_score = round(max(60.0, min(98.0, 85.0 + (avg_score_10 * 1.2))), 1)
+
         cat_scores = CategoryScores(
-            answer_quality=round((rel_sum / ans_count) * 10, 1),
-            technical_knowledge=round((tech_sum / ans_count) * 10, 1),
-            communication=round(((clar_sum + rel_sum) / (2 * ans_count)) * 10, 1),
-            clarity=round((clar_sum / ans_count) * 10, 1),
-            confidence=round((avg_score_10 * 9.8), 1),
-            structure=round((struct_sum / ans_count) * 10, 1),
+            interview_performance=overall_100,
+            answer_quality=ans_qual,
+            technical_knowledge=tech_know,
+            communication=comm_score,
+            visual_presentation=vis_score,
         )
 
     dedup_strengths = list(dict.fromkeys(all_strengths))[:4] or [
         "Good communication style and engagement.",
         f"Clear understanding of {interview.role} concepts.",
     ]
-    dedup_improvements = list(dict.fromkeys(all_improvements))[:4] or [
+
+    dedup_improvements = list(dict.fromkeys(all_improvements)) or [
         "Include more specific metrics and quantifiable outcomes.",
         "Structure answers consistently using the STAR method.",
     ]
+
+    # Constructive objective feedback (strictly non-diagnostic)
+    if total_filler_words > 4:
+        dedup_improvements.append(f"Used {total_filler_words} filler words across answers. Try replacing them with short intentional pauses.")
+    else:
+        dedup_improvements.append("Maintained concise phrasing with minimal filler word usage.")
+
+    dedup_improvements = list(dict.fromkeys(dedup_improvements))[:4]
 
     comm_metrics_data = analysis_service.generate_interview_communication_summary(ans_count, avg_score_10)
 

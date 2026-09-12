@@ -187,6 +187,7 @@ export const InterviewRoomPage: React.FC<InterviewRoomPageProps> = ({ session, o
             onToggleMic={handleToggleMic}
             analysisData={analysisData}
             cameraError={cameraError}
+            transcriptText={fullCandidateAnswer}
           />
         </div>
       </div>
