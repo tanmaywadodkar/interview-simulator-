@@ -33,7 +33,7 @@ def test_speaking_analyzer_filler_words():
 def test_face_and_pose_analyzers():
     face_analyzer = FaceAnalyzer()
     res_face = face_analyzer._fallback_response()
-    assert res_face["face_detected"] is True
+    assert res_face["face_detected"] is False
     assert "eye_contact_ratio" in res_face
 
     pose_analyzer = PoseAnalyzer()

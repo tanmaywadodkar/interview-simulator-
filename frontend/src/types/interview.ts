@@ -60,13 +60,24 @@ export interface CategoryScores {
 export interface CommunicationMetrics {
   speaking_speed_wpm: number;
   filler_words_count: number;
-  eye_contact_percentage: number;
-  face_visibility_percentage: number;
-  hand_visibility_percentage: number;
+  eye_contact_percentage?: number;
+  face_visibility_percentage?: number;
+  hand_visibility_percentage?: number;
   hand_movement_intensity: string;
-  posture_score: number;
+  posture_score?: number;
   posture_status: string;
   is_simulated_demo: boolean;
+  communication_score?: number;
+  average_pause_seconds?: number;
+  longest_pause_seconds?: number;
+  answer_duration_seconds?: number;
+  feedback?: string[];
+  visual_presentation_score?: number;
+  camera_framing_status?: string;
+  head_movement_level?: string;
+  visual_insights?: string[];
+  is_insufficient_data?: boolean;
+  data_status?: string;
 }
 
 export interface QuestionCommunicationReport {
@@ -78,6 +89,15 @@ export interface QuestionCommunicationReport {
   filler_words_found: string[];
   hand_movement_intensity: string;
   posture_status: string;
+  communication_score?: number;
+  answer_duration_seconds?: number;
+  average_pause_seconds?: number;
+  longest_pause_seconds?: number;
+  pause_behavior_type?: string;
+  repetition_score?: number;
+  feedback?: string[];
+  visual_score?: number;
+  camera_framing_status?: string;
 }
 
 export interface QuestionDetailReport {
@@ -126,4 +146,50 @@ export interface FrameAnalysisResult {
   posture_status: string;
   confidence_signal: number;
   is_demo: boolean;
+  analysis_available?: boolean;
+  score_available?: boolean;
+  multiple_faces_detected?: boolean;
+  visual_score?: number;
+  score_interpretation?: string;
+  framing?: {
+    status: string;
+    position: string;
+  };
+  eye_contact?: {
+    status: string;
+    ratio: number;
+  };
+  head_pose_details?: {
+    yaw: number;
+    pitch: number;
+    roll: number;
+    yaw_deviation?: number;
+    pitch_deviation?: number;
+    roll_deviation?: number;
+    classification: string;
+  };
+  head_movement?: {
+    status?: string;
+    level: string;
+    movement_score?: number;
+    orientation?: string;
+    movement_state?: string;
+    movement_event_active?: boolean;
+    movement_event_count?: number;
+    delta_yaw?: number;
+    delta_pitch?: number;
+    delta_roll?: number;
+    delta_magnitude?: number;
+    shake_count?: number;
+    tilt_detected?: boolean;
+    movement_events: number;
+    max_yaw_deviation?: number;
+    max_pitch_deviation?: number;
+    max_roll_deviation?: number;
+    avg_yaw_deviation?: number;
+    avg_pitch_deviation?: number;
+    avg_roll_deviation?: number;
+  };
+  feedback?: string[];
 }
+

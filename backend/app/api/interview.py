@@ -141,11 +141,17 @@ async def submit_answer(interview_id: str, payload: AnswerSubmit, db: Session = 
     score = float(evaluation.get("score", 7.0))
 
     # Analyze communication metrics for this specific question
-    comm_q_metrics = analysis_service.analyze_question_communication(sanitized_transcript)
+    comm_q_metrics = analysis_service.analyze_question_communication(
+        transcript=sanitized_transcript,
+        duration_sec=payload.duration_seconds,
+        pauses_sec=payload.pauses,
+    )
     
     # Store metrics in database linked to current question
     crud.record_communication_metric(db, interview.id, "words_per_minute", float(comm_q_metrics["words_per_minute"]), question_id=current_q.id)
-    crud.record_communication_metric(db, interview.id, "filler_words_count", float(comm_q_metrics["filler_words_count"]), question_id=current_q.id, text_desc=", ".join(comm_q_metrics["filler_words_found"]))
+    crud.record_communication_metric(db, interview.id, "filler_words_count", float(comm_q_metrics["filler_words_count"]), question_id=current_q.id, text_desc=", ".join(comm_q_metrics.get("filler_words_found", [])))
+    crud.record_communication_metric(db, interview.id, "communication_score", float(comm_q_metrics.get("communication_score", 80)), question_id=current_q.id)
+    crud.record_communication_metric(db, interview.id, "average_pause_seconds", float(comm_q_metrics.get("average_pause_seconds", 0.0)), question_id=current_q.id)
     crud.record_communication_metric(db, interview.id, "eye_contact_percentage", float(comm_q_metrics["eye_contact_percentage"]), question_id=current_q.id)
 
     # Attach communication metrics to answer evaluation dict
@@ -158,6 +164,7 @@ async def submit_answer(interview_id: str, payload: AnswerSubmit, db: Session = 
         score=score,
         evaluation=evaluation,
     )
+
 
     return AnswerEvaluationSchema(
         score=score,
@@ -280,6 +287,7 @@ def _build_performance_report(interview) -> PerformanceReportResponse:
     all_improvements = []
     total_filler_words = 0
     total_wpm_sum = 0
+    comm_results_list = []
 
     for q in interview.questions:
         if q.answer and q.answer.score is not None:
@@ -299,6 +307,7 @@ def _build_performance_report(interview) -> PerformanceReportResponse:
             struct_sum += struct
 
             comm_q = eval_data.get("communication") or analysis_service.analyze_question_communication(q.answer.transcript)
+            comm_results_list.append(comm_q)
             total_filler_words += comm_q.get("filler_words_count", 0)
             total_wpm_sum += comm_q.get("words_per_minute", 135)
 
@@ -317,6 +326,13 @@ def _build_performance_report(interview) -> PerformanceReportResponse:
                 filler_words_found=comm_q.get("filler_words_found", []),
                 hand_movement_intensity=str(comm_q.get("hand_movement_intensity", "Moderate")),
                 posture_status=str(comm_q.get("posture_status", "Good Alignment")),
+                communication_score=comm_q.get("communication_score"),
+                answer_duration_seconds=comm_q.get("response_duration_sec"),
+                average_pause_seconds=comm_q.get("average_pause_seconds"),
+                longest_pause_seconds=comm_q.get("longest_pause_seconds"),
+                pause_behavior_type=comm_q.get("pause_behavior_type"),
+                repetition_score=comm_q.get("repetition_score"),
+                feedback=comm_q.get("feedback"),
             )
 
             questions_detail.append(QuestionDetailReport(
@@ -340,15 +356,22 @@ def _build_performance_report(interview) -> PerformanceReportResponse:
             ))
 
     if ans_count == 0:
-        avg_score_10 = 7.0
-        overall_100 = 70.0
+        avg_score_10 = 0.0
+        overall_100 = 0.0
         cat_scores = CategoryScores(
-            interview_performance=70.0,
-            answer_quality=70.0,
-            technical_knowledge=70.0,
-            communication=75.0,
-            visual_presentation=76.0,
+            interview_performance=0.0,
+            answer_quality=0.0,
+            technical_knowledge=0.0,
+            communication=0.0,
+            visual_presentation=0.0,
         )
+        dedup_strengths = ["Session initialized successfully."]
+        dedup_improvements = ["No answer data submitted for evaluation."]
+        summary_text = (
+            f"No questions were answered during this {interview.interview_type} interview session for {interview.role}. "
+            "Insufficient data collected to evaluate candidate performance."
+        )
+        top_recommendation = "Complete at least one interview question to generate a full performance analysis."
     else:
         avg_score_10 = total_score_sum / ans_count
         overall_100 = round(avg_score_10 * 10, 1)
@@ -366,34 +389,36 @@ def _build_performance_report(interview) -> PerformanceReportResponse:
             visual_presentation=vis_score,
         )
 
-    dedup_strengths = list(dict.fromkeys(all_strengths))[:4] or [
-        "Good communication style and engagement.",
-        f"Clear understanding of {interview.role} concepts.",
-    ]
+        dedup_strengths = list(dict.fromkeys(all_strengths))[:4] or [
+            "Good communication style and engagement.",
+            f"Clear understanding of {interview.role} concepts.",
+        ]
 
-    dedup_improvements = list(dict.fromkeys(all_improvements)) or [
-        "Include more specific metrics and quantifiable outcomes.",
-        "Structure answers consistently using the STAR method.",
-    ]
+        dedup_improvements = list(dict.fromkeys(all_improvements)) or [
+            "Include more specific metrics and quantifiable outcomes.",
+            "Structure answers consistently using the STAR method.",
+        ]
 
-    # Constructive objective feedback (strictly non-diagnostic)
-    if total_filler_words > 4:
-        dedup_improvements.append(f"Used {total_filler_words} filler words across answers. Try replacing them with short intentional pauses.")
-    else:
-        dedup_improvements.append("Maintained concise phrasing with minimal filler word usage.")
+        # Constructive objective feedback (strictly non-diagnostic)
+        if total_filler_words > 4:
+            dedup_improvements.append(f"Used {total_filler_words} filler words across answers. Try replacing them with short intentional pauses.")
+        else:
+            dedup_improvements.append("Maintained concise phrasing with minimal filler word usage.")
 
-    dedup_improvements = list(dict.fromkeys(dedup_improvements))[:4]
+        dedup_improvements = list(dict.fromkeys(dedup_improvements))[:4]
 
-    comm_metrics_data = analysis_service.generate_interview_communication_summary(ans_count, avg_score_10)
+        summary_text = (
+            f"The candidate demonstrated solid technical and contextual awareness for the {interview.role} role. "
+            f"Across {ans_count} answered questions in a {interview.difficulty} {interview.interview_type} scenario, "
+            f"their responses scored an overall {overall_100}/100. Key strengths included strong clarity and domain relevance."
+        )
 
-    summary_text = (
-        f"The candidate demonstrated solid technical and contextual awareness for the {interview.role} role. "
-        f"Across {ans_count} answered questions in a {interview.difficulty} {interview.interview_type} scenario, "
-        f"their responses scored an overall {overall_100}/100. Key strengths included strong clarity and domain relevance."
-    )
+        top_recommendation = (
+            dedup_improvements[0] if dedup_improvements else "Focus on providing structured, metric-driven answers."
+        )
 
-    top_recommendation = (
-        dedup_improvements[0] if dedup_improvements else "Focus on providing structured, metric-driven answers."
+    comm_metrics_data = analysis_service.generate_interview_communication_summary(
+        ans_count, avg_score_10, comm_results_list=comm_results_list
     )
 
     return PerformanceReportResponse(
@@ -413,3 +438,4 @@ def _build_performance_report(interview) -> PerformanceReportResponse:
         questions_detail=questions_detail,
         communication_metrics=CommunicationMetricsSummary(**comm_metrics_data)
     )
+

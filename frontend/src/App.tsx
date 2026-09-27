@@ -4,6 +4,7 @@ import { Footer } from './components/Footer';
 import { PrivacyModal } from './components/PrivacyModal';
 import { LandingPage } from './pages/LandingPage';
 import { SetupPage } from './pages/SetupPage';
+import { CameraCheckPage } from './pages/CameraCheckPage';
 import { InterviewRoomPage } from './pages/InterviewRoomPage';
 import { ReportPage } from './pages/ReportPage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -11,20 +12,27 @@ import { InterviewSetupPayload, InterviewSession, PerformanceReport } from './ty
 import { startInterview } from './services/api';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'landing' | 'setup' | 'interview' | 'report' | 'history'>('landing');
+  const [activeTab, setActiveTab] = useState<'landing' | 'setup' | 'camera_check' | 'interview' | 'report' | 'history'>('landing');
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState<InterviewSetupPayload | null>(null);
   const [currentSession, setCurrentSession] = useState<InterviewSession | null>(null);
   const [currentReport, setCurrentReport] = useState<PerformanceReport | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleStartInterviewSession = async (payload: InterviewSetupPayload) => {
+  const handleSetupSubmit = (payload: InterviewSetupPayload) => {
+    setPendingPayload(payload);
+    setActiveTab('camera_check');
+  };
+
+  const handleCameraCheckContinue = async () => {
+    if (!pendingPayload) return;
     try {
       setIsLoading(true);
-      const session = await startInterview(payload);
+      const session = await startInterview(pendingPayload);
       setCurrentSession(session);
       setActiveTab('interview');
     } catch (err: any) {
-      alert(err.message || 'Could not start interview session. Ensure FastAPI backend is running on http://localhost:8000');
+      alert(err.message || 'Could not start interview session. Ensure FastAPI backend is running on http://127.0.0.1:8000');
     } finally {
       setIsLoading(false);
     }
@@ -36,16 +44,16 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#090d16] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[#F5F5F3] text-[#202124] font-sans selection:bg-[#2F6B5F] selection:text-white">
       
       {/* Top Navbar */}
       <Navbar
-        activeTab={activeTab}
+        activeTab={activeTab === 'camera_check' ? 'setup' : activeTab}
         onNavigate={(tab) => setActiveTab(tab)}
         onOpenPrivacy={() => setIsPrivacyOpen(true)}
       />
 
-      {/* Main Page View router */}
+      {/* Main View Router */}
       <main className="flex-1">
         {activeTab === 'landing' && (
           <LandingPage
@@ -56,8 +64,16 @@ export function App() {
 
         {activeTab === 'setup' && (
           <SetupPage
-            onStart={handleStartInterviewSession}
+            onStart={handleSetupSubmit}
             isLoading={isLoading}
+          />
+        )}
+
+        {activeTab === 'camera_check' && pendingPayload && (
+          <CameraCheckPage
+            role={pendingPayload.role}
+            interviewType={pendingPayload.interview_type}
+            onContinue={handleCameraCheckContinue}
           />
         )}
 

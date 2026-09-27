@@ -17,6 +17,8 @@ class InterviewCreate(BaseModel):
 
 class AnswerSubmit(BaseModel):
     transcript: str = Field(..., min_length=1)
+    duration_seconds: Optional[float] = None
+    pauses: Optional[List[float]] = None
 
 
 class QuestionResponse(BaseModel):
@@ -81,13 +83,28 @@ class InterviewResponse(BaseModel):
 class CommunicationMetricsSummary(BaseModel):
     speaking_speed_wpm: float = 138.0
     filler_words_count: int = 2
-    eye_contact_percentage: float = 85.0
-    face_visibility_percentage: float = 95.5
-    hand_visibility_percentage: float = 89.0
+    eye_contact_percentage: Optional[float] = 85.0
+    face_visibility_percentage: Optional[float] = 95.5
+    hand_visibility_percentage: Optional[float] = 89.0
     hand_movement_intensity: str = "Moderate"
-    posture_score: float = 8.8
+    posture_score: Optional[float] = 8.8
     posture_status: str = "Good Alignment"
-    is_simulated_demo: bool = True
+    is_simulated_demo: bool = False
+
+    # Phase 2A Speaking & Communication additions
+    communication_score: Optional[int] = 78
+    average_pause_seconds: Optional[float] = 1.1
+    longest_pause_seconds: Optional[float] = 2.4
+    answer_duration_seconds: Optional[float] = 102.0
+    feedback: Optional[List[str]] = Field(default_factory=list)
+
+    # Phase 2B Visual & Head Pose additions
+    visual_presentation_score: Optional[int] = 85
+    camera_framing_status: Optional[str] = "Good"
+    head_movement_level: Optional[str] = "Stable"
+    visual_insights: Optional[List[str]] = Field(default_factory=list)
+    is_insufficient_data: bool = False
+    data_status: str = "VALID"
 
 
 class QuestionCommunicationReport(BaseModel):
@@ -99,6 +116,15 @@ class QuestionCommunicationReport(BaseModel):
     filler_words_found: List[str]
     hand_movement_intensity: str
     posture_status: str
+
+    # Phase 2A Speaking & Communication additions
+    communication_score: Optional[int] = None
+    answer_duration_seconds: Optional[float] = None
+    average_pause_seconds: Optional[float] = None
+    longest_pause_seconds: Optional[float] = None
+    pause_behavior_type: Optional[str] = None
+    repetition_score: Optional[int] = None
+    feedback: Optional[List[str]] = None
 
 
 class QuestionDetailReport(BaseModel):
@@ -126,7 +152,6 @@ class CategoryScores(BaseModel):
     visual_presentation: float
 
 
-
 class PerformanceReportResponse(BaseModel):
     interview_id: str
     role: str
@@ -143,3 +168,4 @@ class PerformanceReportResponse(BaseModel):
     most_important_improvement: str
     questions_detail: List[QuestionDetailReport]
     communication_metrics: CommunicationMetricsSummary
+

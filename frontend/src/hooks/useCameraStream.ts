@@ -9,44 +9,67 @@ export function useCameraStream() {
   const startCamera = useCallback(async () => {
     try {
       setError(null);
+      
+      // Stop previous stream tracks if active
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user',
+        },
         audio: false,
       });
+
       setStream(mediaStream);
       setIsCameraActive(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
     } catch (err: any) {
-      console.warn('Camera access error:', err);
-      setError('Camera access denied or unavailable. Visual analysis will operate in fallback mode.');
+      console.warn('Camera getUserMedia error:', err);
       setIsCameraActive(false);
+      setStream(null);
+
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setError('Camera access denied. Please allow camera access in your browser settings.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setError('No camera detected. Please connect a webcam.');
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        setError('Camera unavailable. Please check that another application is not using your webcam.');
+      } else {
+        setError('Unable to access webcam. Please check your device media permissions.');
+      }
     }
-  }, []);
+  }, [stream]);
 
   const stopCamera = useCallback(() => {
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
       setStream(null);
-      setIsCameraActive(false);
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
     }
+    setIsCameraActive(false);
   }, [stream]);
 
   useEffect(() => {
     return () => {
-      stopCamera();
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
     };
-  }, [stopCamera]);
+  }, [stream]);
 
   const captureFrameBase64 = useCallback((): string | null => {
     if (!videoRef.current || !isCameraActive) return null;
     try {
       const video = videoRef.current;
-      if (video.videoWidth === 0 || video.videoHeight === 0) return null;
+      if (
+        video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
+        video.videoWidth === 0 ||
+        video.videoHeight === 0
+      ) {
+        return null;
+      }
 
       const canvas = document.createElement('canvas');
       canvas.width = 320;
@@ -55,7 +78,9 @@ export function useCameraStream() {
       if (!ctx) return null;
 
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      return canvas.toDataURL('image/jpeg', 0.6);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+      if (!dataUrl || dataUrl.length < 100) return null;
+      return dataUrl;
     } catch (err) {
       return null;
     }

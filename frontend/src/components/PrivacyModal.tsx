@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, X, Lock, Eye, Mic, Server, CheckCircle2 } from 'lucide-react';
+import { Shield, X, Eye, Mic, Server, CheckCircle2 } from 'lucide-react';
 
 interface PrivacyModalProps {
   isOpen: boolean;
@@ -10,84 +10,84 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) =
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn">
-      <div className="bg-[#111827] border border-slate-700/80 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white border border-[#D9D9D4] rounded max-w-2xl w-full p-6 shadow-strata-md relative max-h-[90vh] overflow-y-auto">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-5">
+        <div className="flex items-center justify-between border-b border-[#D9D9D4] pb-4 mb-5">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <Shield className="w-6 h-6" />
+            <div className="p-2 rounded bg-[#F5F5F3] text-[#2F6B5F] border border-[#D9D9D4]">
+              <Shield className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white">Privacy & Ethics Policy</h3>
-              <p className="text-xs text-slate-400">Transmitted and analyzed data standards</p>
+              <h3 className="text-lg font-bold text-[#202124]">Privacy & Ethics Standards</h3>
+              <p className="text-xs text-[#6B6B6B]">Transmitted camera and audio data principles</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded text-[#6B6B6B] hover:text-[#202124] hover:bg-[#F5F5F3] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="space-y-5 text-sm text-slate-300">
+        <div className="space-y-4 text-xs text-[#6B6B6B]">
           
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-            <div className="flex items-center gap-2 font-semibold text-indigo-400">
-              <Mic className="w-4 h-4" /> Camera & Microphone Permissions
+          <div className="p-4 rounded bg-[#F5F5F3] border border-[#D9D9D4] space-y-1.5">
+            <div className="flex items-center gap-2 font-semibold text-[#202124]">
+              <Mic className="w-4 h-4 text-[#2F6B5F]" /> Camera & Microphone Permissions
             </div>
-            <p className="text-xs text-slate-400">
-              Your webcam and microphone are accessed only with your explicit browser permission during live interview sessions. Raw video feeds are never saved to disk by default.
+            <p className="leading-relaxed">
+              Your camera and microphone are accessed strictly with explicit browser permission during live interview sessions. Raw video files are not saved to server disk.
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-            <div className="flex items-center gap-2 font-semibold text-blue-400">
-              <Eye className="w-4 h-4" /> Visual & Communication Metrics Notice
+          <div className="p-4 rounded bg-[#F5F5F3] border border-[#D9D9D4] space-y-1.5">
+            <div className="flex items-center gap-2 font-semibold text-[#202124]">
+              <Eye className="w-4 h-4 text-[#2F6B5F]" /> Visual Communication Metrics
             </div>
-            <p className="text-xs text-slate-400">
-              Computer vision features analyze basic geometric metrics (such as head alignment and eye-contact ratios) solely for professional communication feedback.
+            <p className="leading-relaxed">
+              Computer vision algorithms evaluate geometric metrics (such as head positioning and eye contact ratios) solely for professional presentation feedback.
             </p>
-            <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs mt-2 font-medium">
-              ⚠️ Important Disclaimer: This platform does NOT evaluate, infer, or diagnose psychological conditions, emotional state, mental health, or sensitive personal characteristics.
+            <div className="p-2.5 rounded bg-[#FEF8EC] border border-[#FAD79E] text-[#B7791F] text-[11px] font-medium mt-2">
+              ⚠️ Disclaimer: This system does NOT infer, evaluate, or diagnose emotions, psychological traits, mental health, or personal characteristics.
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-            <div className="flex items-center gap-2 font-semibold text-emerald-400">
-              <Server className="w-4 h-4" /> Data Storage & Local Control
+          <div className="p-4 rounded bg-[#F5F5F3] border border-[#D9D9D4] space-y-1.5">
+            <div className="flex items-center gap-2 font-semibold text-[#202124]">
+              <Server className="w-4 h-4 text-[#2F6B5F]" /> Data Storage & Local Control
             </div>
-            <p className="text-xs text-slate-400">
-              Interview transcripts and evaluations are stored in your local SQLite database instance. You maintain full ownership and can delete any interview session at any time directly from the History dashboard.
+            <p className="leading-relaxed">
+              Transcripts and assessment reports are stored securely in your local SQLite database instance. You can delete any session record from your candidate dashboard at any time.
             </p>
           </div>
 
           <div className="pt-2">
-            <h4 className="font-semibold text-white mb-2 text-xs uppercase tracking-wider">Our Privacy Commitments</h4>
-            <ul className="space-y-1.5 text-xs text-slate-300">
+            <h4 className="font-semibold text-[#202124] mb-2 text-xs uppercase tracking-wider">Privacy Commitments</h4>
+            <ul className="space-y-1.5 text-xs text-[#6B6B6B]">
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                No raw video recordings stored on server disks
+                <CheckCircle2 className="w-4 h-4 text-[#2E7D5B] flex-shrink-0" />
+                No raw video recording files stored on server disks
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-[#2E7D5B] flex-shrink-0" />
                 No selling or sharing of candidate transcripts
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                One-click local session deletion for full data removal
+                <CheckCircle2 className="w-4 h-4 text-[#2E7D5B] flex-shrink-0" />
+                One-click local session deletion for complete data removal
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-6 border-t border-slate-800 pt-4 flex justify-end">
+        <div className="mt-6 border-t border-[#D9D9D4] pt-4 flex justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all"
+            className="px-5 py-2.5 strata-button-primary text-xs"
           >
             I Understand
           </button>

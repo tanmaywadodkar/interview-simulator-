@@ -101,3 +101,15 @@ export async function sendFrameAnalysis(interviewId: string, frameBase64: string
   }
   return res.json();
 }
+
+export async function calibrateHeadPose(frames: Array<{ yaw: number; pitch: number; roll: number }>) {
+  const res = await fetch(`${API_BASE}/analysis/calibrate-head-pose`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ frames }),
+  });
+  if (!res.ok) {
+    throw new Error('Head pose calibration failed');
+  }
+  return res.json();
+}

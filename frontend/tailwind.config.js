@@ -7,21 +7,36 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#090d16',
-        surface: '#111827',
-        'surface-hover': '#1f293d',
-        card: '#161f32',
+        background: '#F5F5F3',
+        surface: '#FFFFFF',
+        'surface-hover': '#ECECE9',
+        card: '#FFFFFF',
+        primary: {
+          DEFAULT: '#2F6B5F',
+          hover: '#24554C',
+        },
+        text: {
+          main: '#202124',
+          sub: '#6B6B6B',
+        },
+        border: {
+          subtle: '#D9D9D4',
+          strong: '#BFBFB8',
+        },
         accent: {
-          blue: '#3b82f6',
-          purple: '#8b5cf6',
-          cyan: '#06b6d4',
-          emerald: '#10b981',
-          amber: '#f59e0b',
+          teal: '#2F6B5F',
+          success: '#2E7D5B',
+          warning: '#B7791F',
+          danger: '#B54747',
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['"Source Sans 3"', 'Inter', 'system-ui', 'sans-serif'],
       },
+      boxShadow: {
+        strata: '0 1px 2px rgba(0, 0, 0, 0.03)',
+        'strata-md': '0 2px 8px rgba(0, 0, 0, 0.05)',
+      }
     },
   },
   plugins: [],
