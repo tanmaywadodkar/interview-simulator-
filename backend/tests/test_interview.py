@@ -15,7 +15,10 @@ def setup_database():
     yield
 
 
+from app.services.vision.head_pose_analyzer import head_pose_analyzer
+
 def test_full_interview_flow():
+    head_pose_analyzer.set_calibration(0.0, 0.0, 0.0)
     with TestClient(app) as client:
         # 1. Start interview
         payload = {

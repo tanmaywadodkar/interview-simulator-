@@ -42,15 +42,34 @@ class CommunicationService:
 
         wpm = speech_res["speaking_rate_wpm"]
         duration = speech_res["duration_seconds"]
+        
+        if wpm is None:
+            return {
+                "communication_score": None,
+                "speaking_rate_wpm": None,
+                "answer_duration_seconds": duration if duration and duration > 0 else None,
+                "filler_word_count": None,
+                "filler_rate": None,
+                "filler_words": [],
+                "most_frequently_used_fillers": [],
+                "pause_count": None,
+                "average_pause_seconds": None,
+                "longest_pause_seconds": None,
+                "pause_behavior_type": "Insufficient data",
+                "repetition_score": None,
+                "repetition_severity": "Insufficient data",
+                "score_breakdown": None,
+                "pace_classification": "Insufficient data",
+                "feedback": ["No spoken transcript detected. Insufficient data for communication analysis."],
+            }
+            
         filler_count = filler_res["filler_word_count"]
         filler_rate = filler_res["filler_rate"]
 
         # 2. Transparent Component Scoring (0-100 scale)
 
         # Speaking Pace Score (25%)
-        if wpm <= 0:
-            pace_score = 70
-        elif 120 <= wpm <= 160:
+        if 120 <= wpm <= 160:
             pace_score = 95
         elif 90 <= wpm < 120:
             pace_score = 82
@@ -109,9 +128,7 @@ class CommunicationService:
         feedback: List[str] = []
 
         # WPM Feedback
-        if wpm <= 0:
-            feedback.append("No spoken transcript detected.")
-        elif wpm > 180:
+        if wpm > 180:
             feedback.append(f"Your speaking pace was fast ({wpm} WPM). Slow down slightly during key points so the interviewer can follow your reasoning.")
         elif wpm < 100:
             feedback.append(f"Your speaking pace was slow ({wpm} WPM). Increase your pace slightly for higher engagement.")

@@ -69,21 +69,35 @@ def test_7_normal_stop_words_not_flagged_as_repetition():
 
 def test_8_empty_transcript_handling():
     res = communication_service.analyze_communication("", duration_seconds=10.0)
-    assert res["communication_score"] >= 0
-    assert res["speaking_rate_wpm"] == 0.0
-    assert res["filler_word_count"] == 0
-    assert "No spoken transcript detected." in res["feedback"]
+    assert res["communication_score"] is None
+    assert res["speaking_rate_wpm"] is None
+    assert res["filler_word_count"] is None
+    assert "No spoken transcript detected. Insufficient data for communication analysis." in res["feedback"]
+
+
+def test_8_whitespace_transcript_handling():
+    res = communication_service.analyze_communication("    \n  ", duration_seconds=10.0)
+    assert res["communication_score"] is None
+    assert res["speaking_rate_wpm"] is None
+    assert res["pace_classification"] == "Insufficient data"
 
 
 def test_9_zero_or_negative_duration_handling():
     transcript = "I am a full stack developer experienced in Python and React."
     # Should not raise ZeroDivisionError
     res = speech_analyzer.analyze(transcript, duration_seconds=0.0)
+    # With valid words but zero/negative duration, it should estimate actual_duration
     assert res["speaking_rate_wpm"] > 0
     assert res["duration_seconds"] > 0
 
     res_neg = speech_analyzer.analyze(transcript, duration_seconds=-5.0)
     assert res_neg["speaking_rate_wpm"] > 0
+
+
+def test_9b_zero_duration_empty_transcript():
+    res = communication_service.analyze_communication("", duration_seconds=0.0)
+    assert res["speaking_rate_wpm"] is None
+    assert res["answer_duration_seconds"] is None
 
 
 def test_10_missing_pause_data_handling():

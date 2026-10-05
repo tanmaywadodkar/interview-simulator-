@@ -74,8 +74,8 @@ export const ReportPage: React.FC<ReportPageProps> = ({ report, onBackToSetup, o
           ? ['⚠ Insufficient answer data submitted to evaluate spoken communication.']
           : [
               comm?.speaking_speed_wpm && comm.speaking_speed_wpm >= 120 && comm.speaking_speed_wpm <= 160 ? '✓ Speaking pace was well controlled.' : '⚠ Speaking pace needs minor adjustment.',
-              comm?.filler_words_count !== undefined && comm.filler_words_count <= 3 ? '✓ Filler word usage was minimal.' : '⚠ Filler words were slightly frequent.',
-              comm?.average_pause_seconds !== undefined && comm.average_pause_seconds <= 2.0 ? '✓ Pauses were generally natural.' : '⚠ Frequent hesitation pauses observed.',
+              comm?.filler_words_count !== undefined && comm.filler_words_count !== null && comm.filler_words_count <= 3 ? '✓ Filler word usage was minimal.' : '⚠ Filler words were slightly frequent.',
+              comm?.average_pause_seconds !== undefined && comm.average_pause_seconds !== null && comm.average_pause_seconds <= 2.0 ? '✓ Pauses were generally natural.' : '⚠ Frequent hesitation pauses observed.',
             ];
 
         const insights = (comm?.feedback && comm.feedback.length > 0) ? comm.feedback : defaultInsights;
@@ -367,7 +367,7 @@ export const ReportPage: React.FC<ReportPageProps> = ({ report, onBackToSetup, o
 
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <span className="text-xs font-bold text-[#202124] px-2.5 py-1 rounded-sm bg-[#F5F5F3] border border-[#D9D9D4]">
-                      Score: {q.score} / 10
+                      {q.score !== null ? `Score: ${q.score} / 10` : 'Score: Insufficient data'}
                     </span>
                     {isExpanded ? <ChevronUp className="w-4 h-4 text-[#6B6B6B]" /> : <ChevronDown className="w-4 h-4 text-[#6B6B6B]" />}
                   </div>
@@ -393,9 +393,9 @@ export const ReportPage: React.FC<ReportPageProps> = ({ report, onBackToSetup, o
                       <div className="p-3 rounded-sm bg-[#ECF5F2] border border-[#A7D7C5] space-y-2">
                         <span className="font-bold text-[#2F6B5F]">Communication Breakdown:</span>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[#202124] text-[11px]">
-                          <div>Speaking Speed: <span className="font-bold">{q.communication.words_per_minute} WPM</span></div>
-                          <div>Filler Words: <span className="font-bold">{q.communication.filler_words_count}</span></div>
-                          <div>Average Pause: <span className="font-bold">{q.communication.average_pause_seconds ?? 1.1} sec</span></div>
+                          <div>Speaking Speed: <span className="font-bold">{q.communication.words_per_minute !== null && q.communication.words_per_minute !== undefined ? `${q.communication.words_per_minute} WPM` : 'N/A'}</span></div>
+                          <div>Filler Words: <span className="font-bold">{q.communication.filler_words_count !== null && q.communication.filler_words_count !== undefined ? q.communication.filler_words_count : 'N/A'}</span></div>
+                          <div>Average Pause: <span className="font-bold">{q.communication.average_pause_seconds !== null && q.communication.average_pause_seconds !== undefined ? `${q.communication.average_pause_seconds} sec` : 'N/A'}</span></div>
                           <div>Eye Contact: <span className="font-bold">~{q.communication.eye_contact_percentage}%</span></div>
                         </div>
                       </div>

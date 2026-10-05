@@ -10,7 +10,7 @@ interface CameraCheckPageProps {
   interviewType: string;
 }
 
-type FaceStatusState = 'checking' | 'detected' | 'not_detected' | 'error';
+type FaceStatusState = 'checking' | 'detected' | 'not_detected' | 'multiple_faces' | 'error';
 type PoseStatusState = 'uncalibrated' | 'calibrating' | 'calibrated' | 'error';
 
 export const CameraCheckPage: React.FC<CameraCheckPageProps> = ({ onContinue, role, interviewType }) => {
@@ -39,7 +39,7 @@ export const CameraCheckPage: React.FC<CameraCheckPageProps> = ({ onContinue, ro
     rollDev?: number;
   } | null>(null);
 
-  const faceDetectionHistoryRef = useRef<boolean[]>([]);
+  const faceDetectionHistoryRef = useRef<number[]>([]);
   const calibrationFramesRef = useRef<Array<{ yaw: number; pitch: number; roll: number }>>([]);
   const isCalibratingRef = useRef<boolean>(false);
 
@@ -75,9 +75,9 @@ export const CameraCheckPage: React.FC<CameraCheckPageProps> = ({ onContinue, ro
       const video = videoRef.current;
 
       if (!frameBase64 || !video || video.videoWidth === 0) {
-        const history = [...faceDetectionHistoryRef.current, false].slice(-3);
+        const history = [...faceDetectionHistoryRef.current, 0].slice(-3);
         faceDetectionHistoryRef.current = history;
-        if (history.every((v) => v === false)) {
+        if (history.every((v) => v === 0)) {
           setFaceStatus('not_detected');
         }
         return;
@@ -85,14 +85,14 @@ export const CameraCheckPage: React.FC<CameraCheckPageProps> = ({ onContinue, ro
 
       try {
         const res = await sendFrameAnalysis('preflight_check', frameBase64);
-        const currentFrameFaceDetected = Boolean(res && res.face_detected === true);
+        const currentFaceCount = res?.face_count || 0;
 
         const poseDetails = res?.head_pose_details;
         setLastDiagnostics({
           videoWidth: video.videoWidth,
           videoHeight: video.videoHeight,
           frameLength: frameBase64.length,
-          faceCount: res?.face_count || 0,
+          faceCount: currentFaceCount,
           lastTimestamp: new Date().toLocaleTimeString(),
           yaw: poseDetails?.yaw,
           pitch: poseDetails?.pitch,
@@ -102,14 +102,21 @@ export const CameraCheckPage: React.FC<CameraCheckPageProps> = ({ onContinue, ro
           rollDev: poseDetails?.roll_deviation,
         });
 
-        const history = [...faceDetectionHistoryRef.current, currentFrameFaceDetected].slice(-3);
+        const history = [...faceDetectionHistoryRef.current, currentFaceCount].slice(-3);
         faceDetectionHistoryRef.current = history;
 
         if (history.length >= 3) {
-          const allTrue = history.every((val) => val === true);
-          const allFalse = history.every((val) => val === false);
+          const allOne = history.every((val) => val === 1);
+          const allZero = history.every((val) => val === 0);
+          const anyMultiple = history.some((val) => val > 1);
 
-          if (allTrue) {
+          if (anyMultiple) {
+             setFaceStatus('multiple_faces');
+             if (isCalibratingRef.current) {
+                isCalibratingRef.current = false;
+                setPoseStatus('error');
+             }
+          } else if (allOne) {
             setFaceStatus('detected');
 
             // Trigger calibration if face is stable and not calibrated yet
@@ -150,14 +157,14 @@ export const CameraCheckPage: React.FC<CameraCheckPageProps> = ({ onContinue, ro
               }
             }
 
-          } else if (allFalse) {
+          } else if (allZero) {
             setFaceStatus('not_detected');
           }
         } else {
-          setFaceStatus(currentFrameFaceDetected ? 'detected' : 'not_detected');
+          setFaceStatus(currentFaceCount === 1 ? 'detected' : (currentFaceCount > 1 ? 'multiple_faces' : 'not_detected'));
         }
       } catch (err) {
-        const history = [...faceDetectionHistoryRef.current, false].slice(-3);
+        const history = [...faceDetectionHistoryRef.current, 0].slice(-3);
         faceDetectionHistoryRef.current = history;
         setFaceStatus('error');
       }
@@ -173,7 +180,13 @@ export const CameraCheckPage: React.FC<CameraCheckPageProps> = ({ onContinue, ro
     setCalibrationProgress(0);
   };
 
-  const isReady = isCameraActive && micStatus === 'connected' && faceStatus === 'detected';
+  const isReady = isCameraActive && micStatus === 'connected' && faceStatus === 'detected' && poseStatus === 'calibrated';
+
+  const handleStartInterview = () => {
+    if (isReady) {
+      onContinue();
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-8 animate-fadeIn">
@@ -247,6 +260,10 @@ export const CameraCheckPage: React.FC<CameraCheckPageProps> = ({ onContinue, ro
                 <span className="text-[#2E7D5B] flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-[#2E7D5B]" /> Face Detected
                 </span>
+              ) : faceStatus === 'multiple_faces' ? (
+                <span className="text-[#B54747] flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#B54747]" /> Multiple Faces
+                </span>
               ) : (
                 <span className="text-[#B7791F] flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-[#B7791F]" /> Face Not Detected
@@ -313,6 +330,10 @@ export const CameraCheckPage: React.FC<CameraCheckPageProps> = ({ onContinue, ro
               {faceStatus === 'detected' ? (
                 <span className="flex items-center gap-1 text-[#2E7D5B] font-semibold">
                   <CheckCircle2 className="w-4 h-4" /> Detected
+                </span>
+              ) : faceStatus === 'multiple_faces' ? (
+                <span className="flex items-center gap-1 text-[#B54747] font-semibold">
+                  <AlertCircle className="w-3.5 h-3.5" /> Multiple faces detected
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-[#B7791F] font-semibold">
@@ -381,17 +402,21 @@ export const CameraCheckPage: React.FC<CameraCheckPageProps> = ({ onContinue, ro
               <div className="p-3.5 bg-[#FDF2F2] border border-[#F5C2C2] text-[#B54747] text-xs text-center leading-relaxed rounded-sm">
                 Allow camera permissions in browser to proceed.
               </div>
+            ) : faceStatus === 'multiple_faces' ? (
+              <div className="p-3.5 bg-[#FDF2F2] border border-[#F5C2C2] text-[#B54747] text-xs text-center font-medium leading-relaxed rounded-sm">
+                ⚠ Only one person should be visible in the camera frame.
+              </div>
             ) : (
               <div className="p-3.5 bg-[#FEF8EC] border border-[#FAD79E] text-[#B7791F] text-xs text-center font-medium leading-relaxed rounded-sm">
-                Position yourself facing camera to complete check.
+                Position yourself facing camera and complete calibration to proceed.
               </div>
             )}
           </div>
 
           {/* Primary CTA */}
           <button
-            onClick={onContinue}
-            disabled={!isCameraActive}
+            onClick={handleStartInterview}
+            disabled={!isReady}
             className="w-full py-3.5 strata-button-primary text-sm flex items-center justify-center gap-2 disabled:opacity-40"
           >
             <span>Start Interview</span>

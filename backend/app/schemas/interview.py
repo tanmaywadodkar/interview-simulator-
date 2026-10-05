@@ -32,11 +32,11 @@ class QuestionResponse(BaseModel):
 
 
 class AnswerEvaluationSchema(BaseModel):
-    score: float
-    relevance: float
-    clarity: float
-    technical_accuracy: float
-    structure: float
+    score: Optional[float] = None
+    relevance: Optional[float] = None
+    clarity: Optional[float] = None
+    technical_accuracy: Optional[float] = None
+    structure: Optional[float] = None
     strengths: List[str] = []
     improvements: List[str] = []
     follow_up_needed: bool = False
@@ -81,8 +81,8 @@ class InterviewResponse(BaseModel):
 
 
 class CommunicationMetricsSummary(BaseModel):
-    speaking_speed_wpm: float = 138.0
-    filler_words_count: int = 2
+    speaking_speed_wpm: Optional[float] = None
+    filler_words_count: Optional[int] = None
     eye_contact_percentage: Optional[float] = 85.0
     face_visibility_percentage: Optional[float] = 95.5
     hand_visibility_percentage: Optional[float] = 89.0
@@ -110,9 +110,9 @@ class CommunicationMetricsSummary(BaseModel):
 class QuestionCommunicationReport(BaseModel):
     eye_contact_percentage: float
     face_visibility_percentage: float
-    words_per_minute: int
+    words_per_minute: Optional[int] = None
     speaking_pace_rating: str
-    filler_words_count: int
+    filler_words_count: Optional[int] = None
     filler_words_found: List[str]
     hand_movement_intensity: str
     posture_status: str
@@ -133,11 +133,11 @@ class QuestionDetailReport(BaseModel):
     category: str
     question: str
     transcript: str
-    score: float
-    relevance: float
-    clarity: float
-    technical_accuracy: float
-    structure: float
+    score: Optional[float] = None
+    relevance: Optional[float] = None
+    clarity: Optional[float] = None
+    technical_accuracy: Optional[float] = None
+    structure: Optional[float] = None
     strengths: List[str]
     improvements: List[str]
     sample_improved_answer: str

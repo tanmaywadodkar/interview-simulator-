@@ -15,6 +15,7 @@ from app.schemas.interview import (
     CommunicationMetricsSummary,
 )
 from app.services import ai_interviewer_service, answer_evaluator, speech_service, analysis_service
+from app.services.vision.head_pose_analyzer import head_pose_analyzer
 from app.utils.logger import logger
 
 router = APIRouter(prefix="/interview", tags=["Interview"])
@@ -25,6 +26,12 @@ async def start_interview(payload: InterviewCreate, db: Session = Depends(get_db
     """
     Initialize a new interview, persist candidate parameters, and generate the introductory question.
     """
+    if not head_pose_analyzer.is_calibrated:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Pre-interview verification incomplete. Head pose must be calibrated."
+        )
+
     try:
         interview = crud.create_interview(db, payload)
         first_q_text = await ai_interviewer_service.generate_first_question(
@@ -281,48 +288,54 @@ def _build_performance_report(interview) -> PerformanceReportResponse:
     questions_detail = []
     total_score_sum = 0.0
     ans_count = 0
+    scored_count = 0
 
     rel_sum, clar_sum, tech_sum, struct_sum = 0.0, 0.0, 0.0, 0.0
     all_strengths = []
     all_improvements = []
     total_filler_words = 0
-    total_wpm_sum = 0
     comm_results_list = []
 
     for q in interview.questions:
-        if q.answer and q.answer.score is not None:
+        if q.answer:
             ans_count += 1
             eval_data = q.answer.evaluation or {}
             score = q.answer.score
-            total_score_sum += score
 
-            rel = float(eval_data.get("relevance", score))
-            clar = float(eval_data.get("clarity", score))
-            tech = float(eval_data.get("technical_accuracy", score))
-            struct = float(eval_data.get("structure", score))
-
-            rel_sum += rel
-            clar_sum += clar
-            tech_sum += tech
-            struct_sum += struct
+            if score is not None:
+                scored_count += 1
+                total_score_sum += score
+                rel_sum += float(eval_data.get("relevance", score))
+                clar_sum += float(eval_data.get("clarity", score))
+                tech_sum += float(eval_data.get("technical_accuracy", score))
+                struct_sum += float(eval_data.get("structure", score))
+            
+            rel = eval_data.get("relevance", score)
+            clar = eval_data.get("clarity", score)
+            tech = eval_data.get("technical_accuracy", score)
+            struct = eval_data.get("structure", score)
 
             comm_q = eval_data.get("communication") or analysis_service.analyze_question_communication(q.answer.transcript)
             comm_results_list.append(comm_q)
-            total_filler_words += comm_q.get("filler_words_count", 0)
-            total_wpm_sum += comm_q.get("words_per_minute", 135)
+            
+            filler_val = comm_q.get("filler_words_count")
+            if filler_val is not None:
+                total_filler_words += int(filler_val)
 
             strengths = eval_data.get("strengths", ["Answered the question clearly."])
             improvements = eval_data.get("improvements", ["Provide more specific metrics."])
             all_strengths.extend(strengths)
             all_improvements.extend(improvements)
+            
+            wpm_val = comm_q.get("words_per_minute")
 
             from app.schemas.interview import QuestionCommunicationReport
             q_comm_schema = QuestionCommunicationReport(
                 eye_contact_percentage=float(comm_q.get("eye_contact_percentage", 85.0)),
                 face_visibility_percentage=float(comm_q.get("face_visibility_percentage", 96.0)),
-                words_per_minute=int(comm_q.get("words_per_minute", 135)),
-                speaking_pace_rating=str(comm_q.get("speaking_pace_rating", "Optimal Pace")),
-                filler_words_count=int(comm_q.get("filler_words_count", 0)),
+                words_per_minute=int(wpm_val) if wpm_val is not None else None,
+                speaking_pace_rating=str(comm_q.get("speaking_pace_rating", "Insufficient data")),
+                filler_words_count=int(filler_val) if filler_val is not None else None,
                 filler_words_found=comm_q.get("filler_words_found", []),
                 hand_movement_intensity=str(comm_q.get("hand_movement_intensity", "Moderate")),
                 posture_status=str(comm_q.get("posture_status", "Good Alignment")),
@@ -355,7 +368,7 @@ def _build_performance_report(interview) -> PerformanceReportResponse:
                 communication=q_comm_schema,
             ))
 
-    if ans_count == 0:
+    if scored_count == 0:
         avg_score_10 = 0.0
         overall_100 = 0.0
         cat_scores = CategoryScores(
@@ -368,17 +381,17 @@ def _build_performance_report(interview) -> PerformanceReportResponse:
         dedup_strengths = ["Session initialized successfully."]
         dedup_improvements = ["No answer data submitted for evaluation."]
         summary_text = (
-            f"No questions were answered during this {interview.interview_type} interview session for {interview.role}. "
+            f"No questions were sufficiently answered during this {interview.interview_type} interview session for {interview.role}. "
             "Insufficient data collected to evaluate candidate performance."
         )
-        top_recommendation = "Complete at least one interview question to generate a full performance analysis."
+        top_recommendation = "Complete at least one interview question with spoken answers to generate a full performance analysis."
     else:
-        avg_score_10 = total_score_sum / ans_count
+        avg_score_10 = total_score_sum / scored_count
         overall_100 = round(avg_score_10 * 10, 1)
 
-        ans_qual = round((rel_sum / ans_count) * 10, 1)
-        tech_know = round((tech_sum / ans_count) * 10, 1)
-        comm_score = round(max(50.0, min(100.0, ((clar_sum / ans_count) * 10) - (total_filler_words * 1.5))), 1)
+        ans_qual = round((rel_sum / scored_count) * 10, 1)
+        tech_know = round((tech_sum / scored_count) * 10, 1)
+        comm_score = round(max(50.0, min(100.0, ((clar_sum / scored_count) * 10) - (total_filler_words * 1.5))), 1)
         vis_score = round(max(60.0, min(98.0, 85.0 + (avg_score_10 * 1.2))), 1)
 
         cat_scores = CategoryScores(
@@ -402,14 +415,14 @@ def _build_performance_report(interview) -> PerformanceReportResponse:
         # Constructive objective feedback (strictly non-diagnostic)
         if total_filler_words > 4:
             dedup_improvements.append(f"Used {total_filler_words} filler words across answers. Try replacing them with short intentional pauses.")
-        else:
+        elif total_filler_words == 0:
             dedup_improvements.append("Maintained concise phrasing with minimal filler word usage.")
 
         dedup_improvements = list(dict.fromkeys(dedup_improvements))[:4]
 
         summary_text = (
             f"The candidate demonstrated solid technical and contextual awareness for the {interview.role} role. "
-            f"Across {ans_count} answered questions in a {interview.difficulty} {interview.interview_type} scenario, "
+            f"Across {scored_count} successfully answered questions in a {interview.difficulty} {interview.interview_type} scenario, "
             f"their responses scored an overall {overall_100}/100. Key strengths included strong clarity and domain relevance."
         )
 

@@ -24,11 +24,11 @@ export interface QuestionData {
 }
 
 export interface AnswerEvaluation {
-  score: number;
-  relevance: number;
-  clarity: number;
-  technical_accuracy: number;
-  structure: number;
+  score: number | null;
+  relevance: number | null;
+  clarity: number | null;
+  technical_accuracy: number | null;
+  structure: number | null;
   strengths: string[];
   improvements: string[];
   follow_up_needed: boolean;
@@ -58,8 +58,8 @@ export interface CategoryScores {
 }
 
 export interface CommunicationMetrics {
-  speaking_speed_wpm: number;
-  filler_words_count: number;
+  speaking_speed_wpm?: number | null;
+  filler_words_count?: number | null;
   eye_contact_percentage?: number;
   face_visibility_percentage?: number;
   hand_visibility_percentage?: number;
@@ -67,10 +67,10 @@ export interface CommunicationMetrics {
   posture_score?: number;
   posture_status: string;
   is_simulated_demo: boolean;
-  communication_score?: number;
-  average_pause_seconds?: number;
-  longest_pause_seconds?: number;
-  answer_duration_seconds?: number;
+  communication_score?: number | null;
+  average_pause_seconds?: number | null;
+  longest_pause_seconds?: number | null;
+  answer_duration_seconds?: number | null;
   feedback?: string[];
   visual_presentation_score?: number;
   camera_framing_status?: string;
@@ -83,18 +83,18 @@ export interface CommunicationMetrics {
 export interface QuestionCommunicationReport {
   eye_contact_percentage: number;
   face_visibility_percentage: number;
-  words_per_minute: number;
+  words_per_minute?: number | null;
   speaking_pace_rating: string;
-  filler_words_count: number;
+  filler_words_count?: number | null;
   filler_words_found: string[];
   hand_movement_intensity: string;
   posture_status: string;
-  communication_score?: number;
-  answer_duration_seconds?: number;
-  average_pause_seconds?: number;
-  longest_pause_seconds?: number;
+  communication_score?: number | null;
+  answer_duration_seconds?: number | null;
+  average_pause_seconds?: number | null;
+  longest_pause_seconds?: number | null;
   pause_behavior_type?: string;
-  repetition_score?: number;
+  repetition_score?: number | null;
   feedback?: string[];
   visual_score?: number;
   camera_framing_status?: string;
@@ -106,11 +106,11 @@ export interface QuestionDetailReport {
   category: string;
   question: string;
   transcript: string;
-  score: number;
-  relevance: number;
-  clarity: number;
-  technical_accuracy: number;
-  structure: number;
+  score: number | null;
+  relevance: number | null;
+  clarity: number | null;
+  technical_accuracy: number | null;
+  structure: number | null;
   strengths: string[];
   improvements: string[];
   sample_improved_answer: string;

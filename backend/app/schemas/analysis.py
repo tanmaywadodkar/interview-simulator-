@@ -101,19 +101,19 @@ class CommunicationAnalysisRequest(BaseModel):
 
 
 class CommunicationAnalysisResponse(BaseModel):
-    communication_score: int
-    speaking_rate_wpm: float
-    answer_duration_seconds: float
-    filler_word_count: int
-    filler_rate: float
-    filler_words: Dict[str, int]
-    most_frequently_used_fillers: List[str]
-    pause_count: int
-    average_pause_seconds: float
-    longest_pause_seconds: float
+    communication_score: Optional[int] = None
+    speaking_rate_wpm: Optional[float] = None
+    answer_duration_seconds: Optional[float] = None
+    filler_word_count: Optional[int] = None
+    filler_rate: Optional[float] = None
+    filler_words: Dict[str, int] = {}
+    most_frequently_used_fillers: List[str] = []
+    pause_count: Optional[int] = None
+    average_pause_seconds: Optional[float] = None
+    longest_pause_seconds: Optional[float] = None
     pause_behavior_type: str
-    repetition_score: int
+    repetition_score: Optional[int] = None
     repetition_severity: str
-    score_breakdown: Dict[str, int]
+    score_breakdown: Optional[Dict[str, int]] = None
     pace_classification: str
     feedback: List[str]

@@ -216,32 +216,46 @@ class AnalysisService:
         sess_vis = visual_analysis_service.get_session_summary()
 
         if comm_results_list and len(comm_results_list) > 0 and answers_count > 0:
-            avg_wpm = round(sum(c.get("words_per_minute", 138.0) for c in comm_results_list) / len(comm_results_list), 1)
-            total_fillers = sum(c.get("filler_words_count", 0) for c in comm_results_list)
-            avg_comm_score = round(sum(c.get("communication_score", 80) for c in comm_results_list) / len(comm_results_list))
-            avg_pause = round(sum(c.get("average_pause_seconds", 1.1) for c in comm_results_list) / len(comm_results_list), 1)
-            max_pause = max(c.get("longest_pause_seconds", 0.0) for c in comm_results_list)
-            total_duration = sum(c.get("response_duration_sec", 0.0) for c in comm_results_list)
+            valid_wpm = [c.get("words_per_minute") for c in comm_results_list if c.get("words_per_minute") is not None]
+            avg_wpm = round(sum(valid_wpm) / len(valid_wpm), 1) if valid_wpm else None
+            
+            valid_fillers = [c.get("filler_words_count") for c in comm_results_list if c.get("filler_words_count") is not None]
+            total_fillers = sum(valid_fillers) if valid_fillers else None
+            
+            valid_scores = [c.get("communication_score") for c in comm_results_list if c.get("communication_score") is not None]
+            avg_comm_score = round(sum(valid_scores) / len(valid_scores)) if valid_scores else None
+            
+            valid_avg_pauses = [c.get("average_pause_seconds") for c in comm_results_list if c.get("average_pause_seconds") is not None]
+            avg_pause = round(sum(valid_avg_pauses) / len(valid_avg_pauses), 1) if valid_avg_pauses else None
+            
+            valid_max_pauses = [c.get("longest_pause_seconds") for c in comm_results_list if c.get("longest_pause_seconds") is not None]
+            max_pause = max(valid_max_pauses) if valid_max_pauses else None
+            
+            valid_durations = [c.get("response_duration_sec") for c in comm_results_list if c.get("response_duration_sec") is not None]
+            total_duration = sum(valid_durations) if valid_durations else None
 
             insights = []
-            if avg_wpm >= 120 and avg_wpm <= 160:
-                insights.append("✓ Speaking pace was well controlled.")
-            elif avg_wpm > 160:
-                insights.append("⚠ Speaking pace was slightly fast.")
-            else:
-                insights.append("⚠ Speaking pace was slow.")
+            if avg_wpm is not None:
+                if avg_wpm >= 120 and avg_wpm <= 160:
+                    insights.append("✓ Speaking pace was well controlled.")
+                elif avg_wpm > 160:
+                    insights.append("⚠ Speaking pace was slightly fast.")
+                else:
+                    insights.append("⚠ Speaking pace was slow.")
 
-            if total_fillers <= 3:
-                insights.append("✓ Filler word usage was minimal.")
-            elif total_fillers <= 7:
-                insights.append("⚠ Filler words were slightly frequent.")
-            else:
-                insights.append("⚠ High filler word frequency detected.")
+            if total_fillers is not None:
+                if total_fillers <= 3:
+                    insights.append("✓ Filler word usage was minimal.")
+                elif total_fillers <= 7:
+                    insights.append("⚠ Filler words were slightly frequent.")
+                else:
+                    insights.append("⚠ High filler word frequency detected.")
 
-            if avg_pause <= 2.0:
-                insights.append("✓ Pauses were generally natural.")
-            else:
-                insights.append("⚠ Long hesitation pauses were observed.")
+            if avg_pause is not None:
+                if avg_pause <= 2.0:
+                    insights.append("✓ Pauses were generally natural.")
+                else:
+                    insights.append("⚠ Long hesitation pauses were observed.")
 
             all_insights = insights + sess_vis.get("visual_insights", [])
 

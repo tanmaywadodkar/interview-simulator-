@@ -25,15 +25,15 @@ class AnswerEvaluator:
         """
         if not transcript or len(transcript.strip()) < 5:
             return {
-                "score": 3.0,
-                "relevance": 2.0,
-                "clarity": 3.0,
-                "technical_accuracy": 2.0,
-                "structure": 3.0,
-                "strengths": ["Attempted to answer the question."],
-                "improvements": ["Answer was too short or incomplete. Elaborate with specific details and context."],
-                "follow_up_needed": True,
-                "sample_improved_answer": f"For a {role} role, aim for a structured answer: 'In my experience, when faced with this scenario, I first analyzed the requirements, chose [technology/method], and achieved [measurable result].'"
+                "score": None,
+                "relevance": None,
+                "clarity": None,
+                "technical_accuracy": None,
+                "structure": None,
+                "strengths": ["Insufficient data"],
+                "improvements": ["No meaningful answer was provided. Ensure you respond clearly to the question."],
+                "follow_up_needed": False,
+                "sample_improved_answer": "No answer recorded."
             }
 
         # Use LLM API if key is available and not forced demo mode

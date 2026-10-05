@@ -18,21 +18,21 @@ class SpeechAnalyzer:
     def __init__(self, thresholds: Optional[Dict[str, float]] = None):
         self.thresholds = thresholds or DEFAULT_WPM_THRESHOLDS
 
-    def calculate_wpm(self, total_words: int, duration_seconds: Optional[float]) -> float:
+    def calculate_wpm(self, total_words: int, duration_seconds: Optional[float]) -> Optional[float]:
         """
         Calculates Words Per Minute (WPM) based on actual speaking duration.
         """
         if not duration_seconds or duration_seconds <= 0 or total_words <= 0:
-            return 0.0
+            return None
         duration_minutes = duration_seconds / 60.0
         return round(total_words / duration_minutes, 1)
 
-    def classify_wpm(self, wpm: float) -> str:
+    def classify_wpm(self, wpm: Optional[float]) -> str:
         """
         Classifies speaking pace into structured interview ranges.
         """
-        if wpm <= 0:
-            return "N/A"
+        if wpm is None or wpm <= 0:
+            return "Insufficient data"
         if wpm < self.thresholds["very_slow"]:
             return "Very slow"
         elif self.thresholds["very_slow"] <= wpm < self.thresholds["slow"]:
@@ -55,8 +55,8 @@ class SpeechAnalyzer:
             return {
                 "total_words": 0,
                 "duration_seconds": round(duration_seconds, 1) if (duration_seconds and duration_seconds > 0) else 0.0,
-                "speaking_rate_wpm": 0.0,
-                "pace_classification": "N/A",
+                "speaking_rate_wpm": None,
+                "pace_classification": "Insufficient data",
             }
 
         cleaned = transcript.strip()
